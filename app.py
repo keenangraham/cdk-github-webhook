@@ -31,7 +31,7 @@ class GithubWebhook(Stack):
         secret = Secret.from_secret_complete_arn(
             self,
             'Secret',
-            secret_arn='arn:aws:secretsmanager:us-west-2:109189702753:secret:github-webhook-secret-hz6JXf',
+            secret_complete_arn='arn:aws:secretsmanager:us-west-2:109189702753:secret:github-webhook-secret-hz6JXf',
         )
 
         dead_letter_queue = Queue(
