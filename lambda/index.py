@@ -76,8 +76,6 @@ def handler(event, context):
         QueueUrl=QUEUE_URL,
         MessageBody=json.dumps(message)
     )
-    
-    print('Sending message', sqs_response)
 
     return {
         'statusCode': 200,
