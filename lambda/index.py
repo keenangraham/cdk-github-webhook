@@ -8,8 +8,6 @@ import os
 
 import boto3
 
-from botocore.exceptions import ClientError
-
 
 sm_client = boto3.client('secretsmanager')
 
@@ -39,6 +37,7 @@ def handler(event, context):
     github_signature = event['headers'].get('x-hub-signature-256')
 
     if not github_signature:
+        print('Missing signature, skipping.')
         return {
             'statusCode': 401,
             'body': json.dumps(
@@ -48,9 +47,12 @@ def handler(event, context):
 
     payload_body = event['body']
 
+    payload_body_json = json.loads(event['body'])
+
     github_event = event['headers'].get('x-github-event', '')
 
-    if github_event != 'delete':
+    if github_event != 'delete' or payload_body_json.get('ref_type') != 'branch':
+        print('Not delete or not branch, skipping.')
         return {
             'statusCode': 202,
             'body': json.dumps(f'Ignored {github_event} event')
@@ -59,25 +61,21 @@ def handler(event, context):
     signature_valid = verify_hmac(github_secret, payload_body, github_signature)
 
     if not signature_valid:
+        print('Invalid signature, skipping')
         return {
             'statusCode': 403,
             'body': json.dumps('Unauthorized - Invalid signature')
         }
 
-    payload = json.loads(request_body)
-
-    if payload.get('action') == 'deleted':
-        try:
-            sqs_response = sqs_client.send_message(
-                QueueUrl=QUEUE_URL,
-                MessageBody=request_body
-            )
-        except ClientError as e:
-            print(f'Error sending message to SQS: {e}')
-            return {
-                'statusCode': 500,
-                'body': json.dumps({'message': 'Internal server error'})
-            }
+    sqs_response = sqs_client.send_message(
+        QueueUrl=QUEUE_URL,
+        MessageBody={
+            'event': 'BRANCH_DELETED',
+            'branch': payload_body_json.get('ref')
+        }
+    )
+    
+    print('Sending message', sqs_response)
 
     return {
         'statusCode': 200,
