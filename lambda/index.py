@@ -69,10 +69,12 @@ def handler(event, context):
 
     sqs_response = sqs_client.send_message(
         QueueUrl=QUEUE_URL,
-        MessageBody={
-            'event': 'BRANCH_DELETED',
-            'branch': payload_body_json.get('ref')
-        }
+        MessageBody=json.dumps(
+            {
+                'event': 'BRANCH_DELETED',
+                'branch': payload_body_json.get('ref')
+            }
+        )
     )
     
     print('Sending message', sqs_response)
