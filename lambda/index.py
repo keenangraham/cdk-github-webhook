@@ -30,8 +30,6 @@ def verify_hmac(secret, body, signature):
 
 
 def handler(event, context):
-    print(event)
-
     github_secret = get_github_secret()
 
     github_signature = event['headers'].get('x-hub-signature-256')
@@ -67,14 +65,16 @@ def handler(event, context):
             'body': json.dumps('Unauthorized - Invalid signature')
         }
 
+    message = {
+        'event': 'BRANCH_DELETED',
+        'branch': payload_body_json.get('ref')
+    }
+
+    print('Sending message', message)
+
     sqs_response = sqs_client.send_message(
         QueueUrl=QUEUE_URL,
-        MessageBody=json.dumps(
-            {
-                'event': 'BRANCH_DELETED',
-                'branch': payload_body_json.get('ref')
-            }
-        )
+        MessageBody=json.dumps(message)
     )
     
     print('Sending message', sqs_response)
